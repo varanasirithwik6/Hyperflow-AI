@@ -27,9 +27,13 @@ export const useWebSockets = () => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host;
 
+    const baseWsUrl = import.meta.env.VITE_WS_URL 
+      ? import.meta.env.VITE_WS_URL.replace(/\/$/, '')
+      : `${wsProtocol}//${host}`;
+
     const connectTelemetry = () => {
       try {
-        const ws = new WebSocket(`${wsProtocol}//${host}/ws/telemetry`);
+        const ws = new WebSocket(`${baseWsUrl}/ws/telemetry`);
         telemetryWsRef.current = ws;
 
         ws.onopen = () => {
@@ -56,7 +60,7 @@ export const useWebSockets = () => {
 
     const connectEvents = () => {
       try {
-        const ws = new WebSocket(`${wsProtocol}//${host}/ws/events`);
+        const ws = new WebSocket(`${baseWsUrl}/ws/events`);
         eventsWsRef.current = ws;
 
         ws.onmessage = (evt) => {
