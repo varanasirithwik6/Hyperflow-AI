@@ -61,7 +61,7 @@ export const DigitalTwinVisualizer: React.FC<DigitalTwinVisualizerProps> = ({
 
   // Auto Demo Tour Timer
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     if (demoPlaying) {
       timer = setInterval(() => {
         setDemoStep((prev) => {
