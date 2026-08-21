@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+.vite/
+frontend/.vite/
 .pnp
 .pnp.js
 
