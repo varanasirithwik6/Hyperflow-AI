@@ -94,6 +94,8 @@ export const SimulationController: React.FC<SimulationControllerProps> = ({
     if (loadingScenario) return; // prevent double clicks
     setLoadingScenario(scenario.id);
     onScenarioChange(scenario.id);
+    // Notify demo simulation engine (runs when backend is offline)
+    window.dispatchEvent(new CustomEvent('hyperflow-scenario', { detail: { scenario: scenario.id } }));
     await triggerScenario(scenario.id);
     setTimeout(() => {
       setLoadingScenario(null);
@@ -105,6 +107,7 @@ export const SimulationController: React.FC<SimulationControllerProps> = ({
     if (loadingScenario) return;
     setLoadingScenario('RESET');
     onScenarioChange('NORMAL');
+    window.dispatchEvent(new CustomEvent('hyperflow-scenario', { detail: { scenario: 'NORMAL' } }));
     await triggerScenario('RESET');
     setTimeout(() => {
       setLoadingScenario(null);

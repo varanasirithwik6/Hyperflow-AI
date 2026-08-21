@@ -345,9 +345,10 @@ export const bookReservation = async (req: BookingRequest): Promise<Reservation>
     };
     return {
       reservation_id: resId,
-      driver_id: driverId,
+      driver_id: req.driver_id || driverId,
       hub_id: req.hub_id,
       hub_name: hubNames[req.hub_id] || req.hub_id,
+      gun_id: null,
       vehicle_model: req.vehicle_model,
       reservation_date: req.reservation_date || new Date().toISOString().slice(0, 10),
       arrival_time: req.arrival_time,
@@ -355,8 +356,12 @@ export const bookReservation = async (req: BookingRequest): Promise<Reservation>
       status: 'RESERVED',
       created_at: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       expected_arrival_time: req.arrival_time,
+      actual_arrival_time: '',
+      delay_min: 0,
+      phantom_ev_id: '',
+      phantom_topup_min: 0,
       reservation_protected: true,
-      phantom_active: false
+      phantom_active: false,
     };
   }
 };
@@ -374,17 +379,20 @@ export const markDriverArrived = async (reservationId: string): Promise<Reservat
       driver_id: 'DRV-742',
       hub_id: 'hub-b',
       hub_name: 'Hub B — Guindy Metro Hub',
+      gun_id: 'gun-hub-b-1',
       vehicle_model: 'Tata Nexon EV',
       reservation_date: new Date().toISOString().slice(0, 10),
       arrival_time: '15:00',
       target_soc: 80,
       status: 'CHARGING',
-      gun_id: 'gun-hub-b-1',
       created_at: '14:30',
       expected_arrival_time: '15:00',
       actual_arrival_time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      delay_min: 0,
+      phantom_ev_id: '',
+      phantom_topup_min: 0,
       reservation_protected: true,
-      phantom_active: false
+      phantom_active: false,
     };
   }
 };
@@ -403,6 +411,7 @@ export const simulateLateArrival = async (reservationId: string, delayMin: numbe
       driver_id: 'DRV-742',
       hub_id: 'hub-b',
       hub_name: 'Hub B — Guindy Metro Hub',
+      gun_id: null,
       vehicle_model: 'Tata Nexon EV',
       reservation_date: new Date().toISOString().slice(0, 10),
       arrival_time: '15:00',
@@ -410,12 +419,12 @@ export const simulateLateArrival = async (reservationId: string, delayMin: numbe
       status: 'PHANTOM_ACTIVE',
       created_at: '14:30',
       expected_arrival_time: '15:00',
+      actual_arrival_time: '',
       reservation_protected: true,
       phantom_active: true,
       phantom_ev_id: 'EV-17',
       phantom_topup_min: 10,
       delay_min: delayMin,
-      why_reason: `Driver delayed +${delayMin}m (threshold 8m). Phantom-Slot activated: EV-17 receives 10m top-up. Original reservation remains PROTECTED.`
     };
   }
 };
@@ -481,7 +490,8 @@ export const fetchSlotAvailability = async (hubId: string, date: string): Promis
       hub_name: hubName,
       date: date,
       time_slot: timeSlot,
-      status: status
+      status: status,
+      reservation_id: null,
     });
   }
 
