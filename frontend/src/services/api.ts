@@ -460,6 +460,20 @@ export const simulateLateArrival = async (reservationId: string, delayMin: numbe
   }
 
   const existing = _localReservations.get(reservationId);
+  const arrTime = existing?.arrival_time || existing?.expected_arrival_time || '15:00';
+  let actualTime = '15:12';
+  try {
+    const parts = arrTime.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const totalM = h * 60 + m + delayMin;
+    const actH = Math.floor(totalM / 60) % 24;
+    const actM = totalM % 60;
+    actualTime = `${String(actH).padStart(2, '0')}:${String(actM).padStart(2, '0')}`;
+  } catch {
+    actualTime = '15:12';
+  }
+
   const updated: Reservation = {
     reservation_id: reservationId,
     driver_id: existing?.driver_id || 'DRV-742',
@@ -468,12 +482,12 @@ export const simulateLateArrival = async (reservationId: string, delayMin: numbe
     gun_id: null,
     vehicle_model: existing?.vehicle_model || 'Tata Nexon EV',
     reservation_date: existing?.reservation_date || new Date().toISOString().slice(0, 10),
-    arrival_time: existing?.arrival_time || '15:00',
+    arrival_time: arrTime,
     target_soc: existing?.target_soc || 80,
     status: 'PHANTOM_ACTIVE',
     created_at: existing?.created_at || '14:30',
-    expected_arrival_time: existing?.expected_arrival_time || '15:00',
-    actual_arrival_time: '',
+    expected_arrival_time: arrTime,
+    actual_arrival_time: actualTime,
     reservation_protected: true,
     phantom_active: true,
     phantom_ev_id: 'EV-17',

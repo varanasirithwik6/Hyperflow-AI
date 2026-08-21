@@ -520,9 +520,16 @@ export const ReservationBookingFlow: React.FC<Props> = ({ hubs, liveReservations
   useEffect(() => {
     if (liveReservations && liveReservations.length > 0) {
       setReservations(prev => {
-        // Merge: update existing, add new ones from live feed
         const map = new Map<string, Reservation>(prev.map(r => [r.reservation_id, r]));
-        liveReservations.forEach(r => map.set(r.reservation_id, r));
+        liveReservations.forEach(r => {
+          const current = map.get(r.reservation_id);
+          // If the user simulated a delay, phantom top-up, or arrived, preserve that state from being reset
+          if (current && (current.phantom_active || current.status === 'PHANTOM_ACTIVE' || current.status === 'CHARGING' || current.status === 'CANCELLED') && r.status === 'RESERVED') {
+            map.set(r.reservation_id, { ...r, ...current });
+          } else {
+            map.set(r.reservation_id, r);
+          }
+        });
         return Array.from(map.values());
       });
     }
