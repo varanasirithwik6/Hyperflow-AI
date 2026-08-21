@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Hub, EVSession, TransformerStatus, LiveMetrics, AIDecisionEvent, OCPPMessage, Reservation } from '../types';
+import { getLocalReservationsList } from '../services/api';
 
 export interface TelemetryPayload {
   scenario: string;
@@ -197,25 +198,7 @@ function buildDemoTelemetry(): TelemetryPayload {
     failed_chargers_count: _scenario === 'CHARGER_FAILURE' ? 1 : 0,
   };
 
-  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const reservations: Reservation[] = [
-    {
-      reservation_id: 'HF-1001', driver_id: 'DRV-742',
-      hub_id: 'hub-b', hub_name: 'Hub B — Guindy Metro Hub',
-      gun_id: null,
-      vehicle_model: 'Tata Nexon EV',
-      reservation_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-      arrival_time: '15:00', target_soc: 80,
-      status: 'RESERVED', created_at: now,
-      expected_arrival_time: '15:00',
-      actual_arrival_time: '',
-      delay_min: 0,
-      phantom_active: false,
-      phantom_ev_id: '',
-      phantom_topup_min: 0,
-      reservation_protected: true,
-    },
-  ];
+  const reservations = getLocalReservationsList();
 
   return { scenario: _scenario, hubs, sessions, transformer, metrics, reservations };
 }

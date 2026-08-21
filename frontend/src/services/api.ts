@@ -318,6 +318,37 @@ function roundNum(n: number, dec: number) {
 // RESERVATION / PHANTOM-SLOT BOOKING API
 // ============================================================
 
+// Local in-memory reservations store for offline/Vercel persistence
+const _localReservations: Map<string, Reservation> = new Map([
+  [
+    'HF-1001',
+    {
+      reservation_id: 'HF-1001',
+      driver_id: 'DRV-742',
+      hub_id: 'hub-b',
+      hub_name: 'Hub B — Guindy Metro Hub',
+      gun_id: null,
+      vehicle_model: 'Tata Nexon EV',
+      reservation_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+      arrival_time: '15:00',
+      target_soc: 80,
+      status: 'RESERVED',
+      created_at: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      expected_arrival_time: '15:00',
+      actual_arrival_time: '',
+      delay_min: 0,
+      phantom_ev_id: '',
+      phantom_topup_min: 0,
+      reservation_protected: true,
+      phantom_active: false,
+    },
+  ],
+]);
+
+export const getLocalReservationsList = (): Reservation[] => {
+  return Array.from(_localReservations.values());
+};
+
 export const bookReservation = async (req: BookingRequest): Promise<Reservation> => {
   try {
     const res = await fetch(`${API_BASE}/reservation/book`, {
@@ -326,7 +357,10 @@ export const bookReservation = async (req: BookingRequest): Promise<Reservation>
       body: JSON.stringify(req),
     });
     if (res.ok) {
-      return await res.json();
+      const data: Reservation = await res.json();
+      _localReservations.set(data.reservation_id, data);
+      window.dispatchEvent(new CustomEvent('hyperflow-reservation-update', { detail: data }));
+      return data;
     }
   } catch (err) {
     // Network/offline error — proceed to client fallback
@@ -334,16 +368,16 @@ export const bookReservation = async (req: BookingRequest): Promise<Reservation>
 
   // Client fallback if backend is offline/unreachable or returned 404/405
   const resId = `HF-${Math.floor(1000 + Math.random() * 9000)}`;
-  const driverId = `DRV-${Math.floor(100 + Math.random() * 900)}`;
+  const driverId = req.driver_id || `DRV-${Math.floor(100 + Math.random() * 900)}`;
   const hubNames: Record<string, string> = {
     'hub-a': 'Hub A — OMR IT Corridor',
     'hub-b': 'Hub B — Guindy Metro Hub',
     'hub-c': 'Hub C — Airport Fast-Charge Hub',
     'hub-d': 'Hub D — Anna Nagar Supercharger',
   };
-  return {
+  const newRes: Reservation = {
     reservation_id: resId,
-    driver_id: req.driver_id || driverId,
+    driver_id: driverId,
     hub_id: req.hub_id,
     hub_name: hubNames[req.hub_id] || req.hub_id,
     gun_id: null,
@@ -361,6 +395,10 @@ export const bookReservation = async (req: BookingRequest): Promise<Reservation>
     reservation_protected: true,
     phantom_active: false,
   };
+
+  _localReservations.set(resId, newRes);
+  window.dispatchEvent(new CustomEvent('hyperflow-reservation-update', { detail: newRes }));
+  return newRes;
 };
 
 export const markDriverArrived = async (reservationId: string): Promise<Reservation> => {
@@ -369,24 +407,29 @@ export const markDriverArrived = async (reservationId: string): Promise<Reservat
       method: 'POST',
     });
     if (res.ok) {
-      return await res.json();
+      const data: Reservation = await res.json();
+      _localReservations.set(data.reservation_id, data);
+      window.dispatchEvent(new CustomEvent('hyperflow-reservation-update', { detail: data }));
+      return data;
     }
   } catch {
     // fallback
   }
-  return {
+
+  const existing = _localReservations.get(reservationId);
+  const updated: Reservation = {
     reservation_id: reservationId,
-    driver_id: 'DRV-742',
-    hub_id: 'hub-b',
-    hub_name: 'Hub B — Guindy Metro Hub',
+    driver_id: existing?.driver_id || 'DRV-742',
+    hub_id: existing?.hub_id || 'hub-b',
+    hub_name: existing?.hub_name || 'Hub B — Guindy Metro Hub',
     gun_id: 'gun-hub-b-1',
-    vehicle_model: 'Tata Nexon EV',
-    reservation_date: new Date().toISOString().slice(0, 10),
-    arrival_time: '15:00',
-    target_soc: 80,
+    vehicle_model: existing?.vehicle_model || 'Tata Nexon EV',
+    reservation_date: existing?.reservation_date || new Date().toISOString().slice(0, 10),
+    arrival_time: existing?.arrival_time || '15:00',
+    target_soc: existing?.target_soc || 80,
     status: 'CHARGING',
-    created_at: '14:30',
-    expected_arrival_time: '15:00',
+    created_at: existing?.created_at || '14:30',
+    expected_arrival_time: existing?.expected_arrival_time || '15:00',
     actual_arrival_time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
     delay_min: 0,
     phantom_ev_id: '',
@@ -394,6 +437,10 @@ export const markDriverArrived = async (reservationId: string): Promise<Reservat
     reservation_protected: true,
     phantom_active: false,
   };
+
+  _localReservations.set(reservationId, updated);
+  window.dispatchEvent(new CustomEvent('hyperflow-reservation-update', { detail: updated }));
+  return updated;
 };
 
 export const simulateLateArrival = async (reservationId: string, delayMin: number = 12): Promise<Reservation> => {
@@ -403,24 +450,29 @@ export const simulateLateArrival = async (reservationId: string, delayMin: numbe
       { method: 'POST' }
     );
     if (res.ok) {
-      return await res.json();
+      const data: Reservation = await res.json();
+      _localReservations.set(data.reservation_id, data);
+      window.dispatchEvent(new CustomEvent('hyperflow-reservation-update', { detail: data }));
+      return data;
     }
   } catch {
     // fallback
   }
-  return {
+
+  const existing = _localReservations.get(reservationId);
+  const updated: Reservation = {
     reservation_id: reservationId,
-    driver_id: 'DRV-742',
-    hub_id: 'hub-b',
-    hub_name: 'Hub B — Guindy Metro Hub',
+    driver_id: existing?.driver_id || 'DRV-742',
+    hub_id: existing?.hub_id || 'hub-b',
+    hub_name: existing?.hub_name || 'Hub B — Guindy Metro Hub',
     gun_id: null,
-    vehicle_model: 'Tata Nexon EV',
-    reservation_date: new Date().toISOString().slice(0, 10),
-    arrival_time: '15:00',
-    target_soc: 80,
+    vehicle_model: existing?.vehicle_model || 'Tata Nexon EV',
+    reservation_date: existing?.reservation_date || new Date().toISOString().slice(0, 10),
+    arrival_time: existing?.arrival_time || '15:00',
+    target_soc: existing?.target_soc || 80,
     status: 'PHANTOM_ACTIVE',
-    created_at: '14:30',
-    expected_arrival_time: '15:00',
+    created_at: existing?.created_at || '14:30',
+    expected_arrival_time: existing?.expected_arrival_time || '15:00',
     actual_arrival_time: '',
     reservation_protected: true,
     phantom_active: true,
@@ -428,18 +480,26 @@ export const simulateLateArrival = async (reservationId: string, delayMin: numbe
     phantom_topup_min: 10,
     delay_min: delayMin,
   };
+
+  _localReservations.set(reservationId, updated);
+  window.dispatchEvent(new CustomEvent('hyperflow-reservation-update', { detail: updated }));
+  return updated;
 };
 
 export const fetchReservations = async (): Promise<Reservation[]> => {
   try {
     const res = await fetch(`${API_BASE}/reservations`);
     if (res.ok) {
-      return await res.json();
+      const list = await res.json();
+      if (Array.isArray(list) && list.length > 0) {
+        list.forEach((r: Reservation) => _localReservations.set(r.reservation_id, r));
+        return list;
+      }
     }
   } catch {
     // fallback
   }
-  return [];
+  return Array.from(_localReservations.values());
 };
 
 export const cancelReservation = async (reservationId: string): Promise<Reservation> => {
@@ -448,24 +508,29 @@ export const cancelReservation = async (reservationId: string): Promise<Reservat
       method: 'POST',
     });
     if (res.ok) {
-      return await res.json();
+      const data: Reservation = await res.json();
+      _localReservations.set(data.reservation_id, data);
+      window.dispatchEvent(new CustomEvent('hyperflow-reservation-update', { detail: data }));
+      return data;
     }
   } catch {
     // fallback
   }
-  return {
+
+  const existing = _localReservations.get(reservationId);
+  const updated: Reservation = {
     reservation_id: reservationId,
-    driver_id: 'DRV-742',
-    hub_id: 'hub-b',
-    hub_name: 'Hub B — Guindy Metro Hub',
+    driver_id: existing?.driver_id || 'DRV-742',
+    hub_id: existing?.hub_id || 'hub-b',
+    hub_name: existing?.hub_name || 'Hub B — Guindy Metro Hub',
     gun_id: null,
-    vehicle_model: 'Tata Nexon EV',
-    reservation_date: new Date().toISOString().slice(0, 10),
-    arrival_time: '15:00',
-    target_soc: 80,
+    vehicle_model: existing?.vehicle_model || 'Tata Nexon EV',
+    reservation_date: existing?.reservation_date || new Date().toISOString().slice(0, 10),
+    arrival_time: existing?.arrival_time || '15:00',
+    target_soc: existing?.target_soc || 80,
     status: 'CANCELLED',
-    created_at: '14:30',
-    expected_arrival_time: '15:00',
+    created_at: existing?.created_at || '14:30',
+    expected_arrival_time: existing?.expected_arrival_time || '15:00',
     actual_arrival_time: '',
     delay_min: 0,
     phantom_ev_id: '',
@@ -473,6 +538,10 @@ export const cancelReservation = async (reservationId: string): Promise<Reservat
     reservation_protected: false,
     phantom_active: false,
   };
+
+  _localReservations.set(reservationId, updated);
+  window.dispatchEvent(new CustomEvent('hyperflow-reservation-update', { detail: updated }));
+  return updated;
 };
 
 export const fetchSlotAvailability = async (hubId: string, date: string): Promise<SlotAvailability[]> => {
