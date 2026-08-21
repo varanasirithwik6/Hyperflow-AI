@@ -1,0 +1,483 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#090d16] text-slate-100 font-sans antialiased overflow-x-hidden;
+  }
+}
+
+/* Glassmorphism Card Style */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.glass-panel-glow {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.15);
+}
+
+/* Custom Pulsing Status Dot */
+.status-dot-active {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse-green 2s infinite;
+}
+
+.status-dot-amber {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+  animation: pulse-amber 2s infinite;
+}
+
+.status-dot-red {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* Custom Scrollbar for terminal logs */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Shadow glow utilities */
+.shadow-glow {
+  box-shadow: 0 0 18px -4px rgba(56,189,248,0.35);
+}
+.shadow-glow-amber {
+  box-shadow: 0 0 18px -4px rgba(245,158,11,0.4);
+}
+
+/* =====================================================
+   LIGHT THEME — applied when <html> has class "light"
+   ===================================================== */
+html.light {
+  --bg-app: #f1f5f9;
+  --bg-header: rgba(255, 255, 255, 0.95);
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-card-border: rgba(203, 213, 225, 0.9);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+}
+
+html.light body {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Glass Panels in Light Mode */
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(203, 213, 225, 0.9) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light .glass-panel-glow {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(14, 165, 233, 0.5) !important;
+  box-shadow: 0 4px 20px -4px rgba(14, 165, 233, 0.15) !important;
+}
+
+/* Header & Nav */
+html.light header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light nav {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Hero / Gradient Banners (Turn dark gradient banners into crisp light cards) */
+html.light [class*="from-slate-900"],
+html.light [class*="from-slate-950"],
+html.light .bg-slate-900\/90,
+html.light .bg-slate-950\/90 {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 60%, #f0f9ff 100%) !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Text Hierarchy */
+html.light .text-white {
+  color: #0f172a !important;
+}
+html.light .text-slate-100 {
+  color: #0f172a !important;
+}
+html.light .text-slate-200 {
+  color: #1e293b !important;
+}
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+html.light .text-slate-400 {
+  color: #475569 !important;
+}
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* High-Contrast Vibrant Accent Text (Replaces washed-out neon in light mode) */
+html.light .text-cyan-400,
+html.light .text-cyan-300,
+html.light .text-cyan-200 {
+  color: #0284c7 !important; /* Sky/Cyan 600 - crisp on white */
+}
+html.light .text-emerald-400,
+html.light .text-emerald-300,
+html.light .text-emerald-200 {
+  color: #047857 !important; /* Emerald 700 - readable on white */
+}
+html.light .text-amber-400,
+html.light .text-amber-300,
+html.light .text-amber-200,
+html.light .text-yellow-400,
+html.light .text-yellow-300 {
+  color: #b45309 !important; /* Amber 700 */
+}
+html.light .text-orange-400,
+html.light .text-orange-300 {
+  color: #c2410c !important; /* Orange 700 */
+}
+html.light .text-purple-400,
+html.light .text-purple-300,
+html.light .text-purple-200 {
+  color: #7e22ce !important; /* Purple 700 */
+}
+html.light .text-red-400,
+html.light .text-red-300,
+html.light .text-red-200,
+html.light .text-rose-400,
+html.light .text-rose-300 {
+  color: #dc2626 !important; /* Red 600 */
+}
+html.light .text-blue-400,
+html.light .text-blue-300,
+html.light .text-blue-200 {
+  color: #1d4ed8 !important; /* Blue 700 */
+}
+
+/* Tinted Alert / Status Panels (Replace dark mud with pastel surfaces) */
+html.light [class*="bg-cyan-950"],
+html.light [class*="bg-cyan-900"] {
+  background-color: #f0f9ff !important;
+  border-color: #7dd3fc !important;
+}
+html.light [class*="bg-emerald-950"],
+html.light [class*="bg-emerald-900"] {
+  background-color: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+}
+html.light [class*="bg-amber-950"],
+html.light [class*="bg-amber-900"] {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+html.light [class*="bg-purple-950"],
+html.light [class*="bg-purple-900"] {
+  background-color: #faf5ff !important;
+  border-color: #d8b4fe !important;
+}
+html.light [class*="bg-red-950"],
+html.light [class*="bg-red-900"],
+html.light [class*="bg-rose-950"] {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+}
+html.light [class*="bg-blue-950"],
+html.light [class*="bg-blue-900"] {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+}
+
+/* Dark surface blocks → crisp white/light gray cards */
+html.light .bg-slate-950,
+html.light .bg-\[\#090d16\],
+html.light .bg-slate-950\/60,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/90 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-900,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/80 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Badges with light backgrounds in Light Mode */
+html.light .bg-emerald-500\/10,
+html.light .bg-emerald-500\/20 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
+}
+
+html.light .bg-cyan-500\/10,
+html.light .bg-cyan-500\/20 {
+  background-color: #f0f9ff !important;
+  border-color: #bae6fd !important;
+  color: #0369a1 !important;
+}
+
+html.light .bg-amber-500\/10,
+html.light .bg-amber-500\/20 {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+}
+
+html.light .bg-purple-500\/10,
+html.light .bg-purple-500\/20 {
+  background-color: #faf5ff !important;
+  border-color: #e9d5ff !important;
+  color: #7e22ce !important;
+}
+
+html.light .bg-red-500\/10,
+html.light .bg-red-500\/20 {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+
+/* Pricing details & card sub-blocks */
+html.light .p-2.rounded.bg-slate-950\/80,
+html.light .p-2\.5.rounded.bg-slate-950\/80,
+html.light .p-2\.5.rounded-xl.bg-slate-950,
+html.light .p-3\.5.rounded-xl.bg-slate-950 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* CPO Live Network Map in Light Mode */
+html.light .relative.w-full.h-72,
+html.light .relative.w-full.h-72 .bg-slate-950 {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+html.light .relative.w-full.h-72 [class*="bg-slate-900"],
+html.light .relative.w-full.h-72 [class*="bg-cyan-950"],
+html.light .relative.w-full.h-72 [class*="bg-amber-950"],
+html.light .relative.w-full.h-72 [class*="bg-emerald-950"] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+html.light .relative.w-full.h-72 .font-bold.text-xs.text-white,
+html.light .relative.w-full.h-72 [class*="text-white"] {
+  color: #0f172a !important;
+}
+html.light .relative.w-full.h-72 .text-slate-400 {
+  color: #475569 !important;
+}
+html.light .relative.w-full.h-72 .text-slate-300 {
+  color: #334155 !important;
+}
+
+/* GreenCharge / CO2 Impact Panel in Light Mode */
+html.light [class*="from-emerald-950"] {
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 60%, #f0fdf4 100%) !important;
+  border-color: #a7f3d0 !important;
+}
+html.light [class*="from-emerald-950"] .text-emerald-300,
+html.light [class*="from-emerald-950"] .text-emerald-300\/90 {
+  color: #047857 !important;
+}
+
+/* Anti-Taper Pricing Notice Card */
+html.light .border-amber-500\/30 {
+  background-color: #ffffff !important;
+  border-color: #fde68a !important;
+}
+html.light .border-amber-500\/30 p,
+html.light .border-amber-500\/30 .text-slate-300 {
+  color: #334155 !important;
+}
+
+
+/* Form Controls (Inputs, Selects, Dropdowns, Sliders) */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+html.light input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Buttons with Solid Gradients & Dark Fills */
+html.light button.bg-gradient-to-r,
+html.light button[class*="bg-cyan-500"],
+html.light button[class*="bg-emerald-500"] {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+html.light button.text-slate-950 {
+  color: #0f172a !important;
+}
+html.light button[class*="bg-slate-800"] {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+html.light button[class*="bg-slate-800"]:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Bottom Simulation Controller Bar */
+html.light .bg-slate-900.border-t {
+  background-color: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04) !important;
+}
+html.light .bg-slate-950.text-slate-400 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+/* Modal Overlay & Dialog */
+html.light .fixed.inset-0.bg-slate-950\/80 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+html.light .fixed .glass-panel {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* General Borders in Light Mode */
+html.light .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+html.light .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+
+/* Scrollbars in Light Mode */
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =====================================================
+   LEAFLET MAP STYLING & GUARANTEED VISIBILITY
+   ===================================================== */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 440px !important;
+  background: #090d16 !important;
+  font-family: inherit !important;
+  z-index: 1 !important;
+}
+
+/* Dark mode Leaflet tile filter */
+.leaflet-tile {
+  filter: brightness(0.85) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+html.light .leaflet-tile {
+  filter: none !important;
+}
+
+html.light .leaflet-container {
+  background: #e2e8f0 !important;
+}
+
+/* Popups */
+.custom-dark-leaflet-popup .leaflet-popup-content-wrapper,
+.dark-popup .leaflet-popup-content-wrapper {
+  background: rgba(2, 6, 23, 0.95) !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+html.light .custom-dark-leaflet-popup .leaflet-popup-content-wrapper,
+html.light .dark-popup .leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+}
+
+.custom-dark-leaflet-popup .leaflet-popup-tip,
+.dark-popup .leaflet-popup-tip {
+  background: rgba(2, 6, 23, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+}
+
+html.light .custom-dark-leaflet-popup .leaflet-popup-tip,
+html.light .dark-popup .leaflet-popup-tip {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  padding: 6px !important;
+}
