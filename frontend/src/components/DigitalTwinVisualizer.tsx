@@ -97,10 +97,15 @@ export const DigitalTwinVisualizer: React.FC<DigitalTwinVisualizerProps> = ({
   const handleSpawnEV = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSpawning(true);
+    window.dispatchEvent(
+      new CustomEvent('hyperflow-spawn-ev', {
+        detail: { hub_id: spawnHubId, vehicle_model: spawnModel, initial_soc: spawnSoc },
+      })
+    );
     await spawnEVInQueue(spawnHubId, spawnModel, spawnSoc);
     setTimeout(() => {
       setIsSpawning(false);
-      showToast(`✓ ${spawnModel} spawned into ${spawnHubId.toUpperCase()} queue at ${spawnSoc}% SOC`, 'success');
+      showToast(`✓ ${spawnModel} arrived at ${spawnHubId.toUpperCase()} (${spawnSoc}% SOC) — Connected & Charging at 48 kW!`, 'success');
     }, 500);
   };
 

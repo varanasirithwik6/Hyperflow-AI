@@ -252,6 +252,7 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
   const [spawnModel, setSpawnModel] = useState<string>('Tata Nexon EV');
   const [spawnSoc, setSpawnSoc] = useState<number>(18);
   const [isSpawning, setIsSpawning] = useState<boolean>(false);
+  const [spawnToast, setSpawnToast] = useState<string | null>(null);
 
   // Projected screen coordinates for floating DOM tags
   const [transformerScreenPos, setTransformerScreenPos] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
@@ -429,7 +430,38 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
   const handleSpawnEV = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSpawning(true);
+
+    // 1. Dispatch custom event for telemetry and demo simulation engine
+    window.dispatchEvent(
+      new CustomEvent('hyperflow-spawn-ev', {
+        detail: { hub_id: spawnHubId, vehicle_model: spawnModel, initial_soc: spawnSoc },
+      })
+    );
+
+    // 2. Call backend API endpoint
     await spawnEVInQueue(spawnHubId, spawnModel, spawnSoc);
+
+    // 3. Immediately assign vehicle to 3D scene bay and start charging animation
+    const vList = vehicleListRef.current;
+    if (vList && vList.length > 0) {
+      let targetBayIdx = vList.findIndex((v, i) => i < 6 && (v.powerKw === 0 || v.status !== 'PARKED_CHARGING'));
+      if (targetBayIdx === -1) targetBayIdx = (Math.floor(Math.random() * 3) + 3); // pick bay B1, B2, or B3
+
+      if (vList[targetBayIdx]) {
+        vList[targetBayIdx].model = spawnModel;
+        vList[targetBayIdx].soc = spawnSoc;
+        vList[targetBayIdx].powerKw = 48.0;
+        vList[targetBayIdx].status = 'PARKED_CHARGING';
+        vList[targetBayIdx].phase = spawnSoc >= 80 ? 'CV_PHASE' : 'CC_PHASE';
+      }
+    }
+
+    // 4. Focus camera on chargers view so the user sees the newly spawned car charging
+    setCameraView('CHARGERS');
+
+    // 5. Show toast notification
+    setSpawnToast(`✓ ${spawnModel} Spawned at ${spawnHubId.toUpperCase()} (${spawnSoc}% SOC) — Connected & Charging at 48.0 kW!`);
+    setTimeout(() => setSpawnToast(null), 4000);
     setTimeout(() => setIsSpawning(false), 500);
   };
 
@@ -1547,6 +1579,16 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
         {/* 3D WEBGL THREE.JS CANVAS CONTAINER */}
         <div className="relative w-full h-[520px] rounded-xl bg-slate-950 border border-slate-800 overflow-hidden shadow-2xl">
           
+          {/* CELEBRATORY SPAWNED EV TOAST BANNER */}
+          {spawnToast && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+              <div className="flex items-center gap-2 bg-cyan-950/95 border border-cyan-400 text-cyan-200 text-xs font-mono font-bold px-4 py-2 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.6)] backdrop-blur-md animate-pulse">
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                {spawnToast}
+              </div>
+            </div>
+          )}
+
           <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
           {/* ZOOM & NAVIGATION HUD BUTTONS */}

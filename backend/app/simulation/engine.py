@@ -938,29 +938,79 @@ class HyperFlowSimulationEngine:
         )
 
     def spawn_ev(self, hub_id: str, vehicle_model: str, battery_capacity_kwh: float, initial_soc: float, target_soc: float, urgency: str):
-        """Interactive control: Spawn a new EV into a hub queue."""
+        """Interactive control: Spawn a new EV into a hub. If a gun is available, start charging immediately; otherwise add to queue."""
         if hub_id in self.hubs:
             ev_id = f"EV-SPAWN-{random.randint(100, 999)}"
-            ev_item = {
-                "ev_id": ev_id,
-                "vehicle_model": vehicle_model,
-                "battery_capacity_kwh": battery_capacity_kwh,
-                "initial_soc": initial_soc,
-                "target_soc": target_soc,
-                "urgency": urgency
-            }
-            if hub_id not in self.hub_queues:
-                self.hub_queues[hub_id] = []
-            self.hub_queues[hub_id].append(ev_item)
             hub = self.hubs[hub_id]
-            hub.current_queue_count = len(self.hub_queues[hub_id])
-            hub.estimated_wait_min = max(0.0, hub.current_queue_count * 8.0)
-            self.add_decision_event(
-                category="OPTIMIZATION",
-                action=f"Spawned {vehicle_model} in {hub.name} Queue",
-                target_id=ev_id,
-                why_reason=f"Interactive driver arrival spawned into {hub.name} queue with {initial_soc:.0f}% initial SOC."
-            )
+            base_tariff = hub.base_tariff_inr if hub else 14.0
+
+            # Find available gun at this hub
+            available_guns = [
+                g for g in self.guns.values()
+                if g.hub_id == hub_id and g.status == "AVAILABLE" and not g.active_session_id
+            ]
+
+            if available_guns:
+                assigned_gun = available_guns[0]
+                new_sess_id = f"sess-{random.randint(200, 999)}"
+                new_session = EVSession(
+                    id=new_sess_id,
+                    vehicle_model=vehicle_model,
+                    battery_capacity_kwh=battery_capacity_kwh,
+                    initial_soc=initial_soc,
+                    current_soc=initial_soc,
+                    target_soc=target_soc,
+                    allocated_power_kw=45.0,
+                    urgency=urgency,
+                    phase="CC_PHASE",
+                    energy_delivered_kwh=0.0,
+                    total_cost_inr=0.0,
+                    current_tariff_inr=base_tariff,
+                    estimated_time_to_80_min=max(5.0, (80.0 - initial_soc) * battery_capacity_kwh / 45.0 * 60.0 / 100.0),
+                    estimated_time_to_target_min=max(8.0, (target_soc - initial_soc) * battery_capacity_kwh / 45.0 * 60.0 / 100.0),
+                    hub_id=hub_id,
+                    gun_id=assigned_gun.id
+                )
+                self.sessions[new_sess_id] = new_session
+                assigned_gun.status = "CHARGING"
+                assigned_gun.active_session_id = new_sess_id
+                assigned_gun.current_power_kw = 45.0
+
+                start_msg = ocpp_simulator.build_transaction_event(
+                    evse_id=assigned_gun.id,
+                    session_id=new_sess_id,
+                    event_type="Started",
+                    soc_pct=initial_soc,
+                    power_kw=45.0
+                )
+                self.add_ocpp_message(start_msg)
+
+                self.add_decision_event(
+                    category="OPTIMIZATION",
+                    action=f"Spawned {vehicle_model} → Connected & Charging on {assigned_gun.id}",
+                    target_id=new_sess_id,
+                    why_reason=f"Interactive driver arrival spawned into {hub.name}. Connected to {assigned_gun.id} at {initial_soc:.0f}% SOC, allocated 45.0 kW."
+                )
+            else:
+                ev_item = {
+                    "ev_id": ev_id,
+                    "vehicle_model": vehicle_model,
+                    "battery_capacity_kwh": battery_capacity_kwh,
+                    "initial_soc": initial_soc,
+                    "target_soc": target_soc,
+                    "urgency": urgency
+                }
+                if hub_id not in self.hub_queues:
+                    self.hub_queues[hub_id] = []
+                self.hub_queues[hub_id].append(ev_item)
+                hub.current_queue_count = len(self.hub_queues[hub_id])
+                hub.estimated_wait_min = max(0.0, hub.current_queue_count * 8.0)
+                self.add_decision_event(
+                    category="OPTIMIZATION",
+                    action=f"Spawned {vehicle_model} in {hub.name} Queue",
+                    target_id=ev_id,
+                    why_reason=f"Interactive driver arrival spawned into {hub.name} queue with {initial_soc:.0f}% initial SOC. All chargers occupied."
+                )
 
     def gun_control(self, gun_id: str, action: str):
         """Interactive control: Inject fault, clear fault, or toggle gun state."""

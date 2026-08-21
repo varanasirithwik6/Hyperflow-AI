@@ -27,6 +27,7 @@ let _soc2 = 45.0;
 let _soc3 = 68.0;
 let _soc4 = 31.0;
 let _scenario = 'NORMAL';
+let _extraSpawnedSessions: EVSession[] = [];
 
 function buildDemoTelemetry(): TelemetryPayload {
   _tick++;
@@ -53,9 +54,18 @@ function buildDemoTelemetry(): TelemetryPayload {
   _soc4 = _scenario === 'CHARGER_FAILURE' ? _soc4 : advanceSoc(_soc4, 55, 44.0);
   if (_soc4 >= 99) _soc4 = 18 + Math.random() * 20;
 
+  // Advance any spawned session
+  _extraSpawnedSessions.forEach((s) => {
+    s.current_soc = advanceSoc(s.current_soc, s.allocated_power_kw, s.battery_capacity_kwh);
+    s.phase = s.current_soc >= 80 ? 'CV_PHASE' : 'CC_PHASE';
+    s.energy_delivered_kwh = parseFloat((((s.current_soc - s.initial_soc) / 100) * s.battery_capacity_kwh).toFixed(2));
+    s.total_cost_inr = parseFloat((s.energy_delivered_kwh * 14).toFixed(2));
+  });
+
+  const spawnedPower = _extraSpawnedSessions.reduce((sum, s) => sum + s.allocated_power_kw, 0);
   const ambientTemp = _scenario === 'HIGH_TEMP' ? 40.0 : 28.0;
   const thermalState = _scenario === 'HIGH_TEMP' ? 82.0 : 68.0;
-  const totalLoad = power1 + power2 + power3 + (_scenario === 'CHARGER_FAILURE' ? 0 : power4) + 20;
+  const totalLoad = power1 + power2 + power3 + (_scenario === 'CHARGER_FAILURE' ? 0 : power4) + spawnedPower + 20;
   const safeHeadroom = _scenario === 'HIGH_TEMP' ? 200 * 0.75 - totalLoad : 200 - totalLoad;
 
   const hubs: Hub[] = [
@@ -156,6 +166,9 @@ function buildDemoTelemetry(): TelemetryPayload {
       hub_id: 'hub-a', gun_id: 'gun-hub-a-4',
     });
   }
+
+  // Include any interactively spawned EV sessions
+  sessions.push(..._extraSpawnedSessions);
 
   const transformer: TransformerStatus = {
     transformer_id: 'TRANSFORMER-HUB-04',
@@ -350,13 +363,51 @@ export const useWebSockets = () => {
     };
   }, []);
 
-  // Expose a way for scenario triggers to update the demo
+  // Expose a way for scenario triggers & spawn EV to update the demo
   useEffect(() => {
-    const handler = (e: CustomEvent) => {
+    const scenarioHandler = (e: CustomEvent) => {
       _scenario = e.detail?.scenario || 'NORMAL';
     };
-    window.addEventListener('hyperflow-scenario', handler as EventListener);
-    return () => window.removeEventListener('hyperflow-scenario', handler as EventListener);
+    const spawnHandler = (e: CustomEvent) => {
+      const detail = e.detail || {};
+      const newSessId = `sess-${Math.floor(200 + Math.random() * 700)}`;
+      const hubId = detail.hub_id || 'hub-a';
+      const model = detail.vehicle_model || 'Tata Nexon EV';
+      const soc = Number(detail.initial_soc) || 18.0;
+      const cap = model.includes('Ioniq') ? 72.6 : model.includes('XUV') ? 50.3 : 40.5;
+
+      const newSess: EVSession = {
+        id: newSessId,
+        vehicle_model: model,
+        battery_capacity_kwh: cap,
+        initial_soc: soc,
+        current_soc: soc,
+        target_soc: 85,
+        allocated_power_kw: 48.0,
+        urgency: 'CRITICAL',
+        phase: soc >= 80 ? 'CV_PHASE' : 'CC_PHASE',
+        energy_delivered_kwh: 0,
+        total_cost_inr: 0,
+        current_tariff_inr: 14.0,
+        estimated_time_to_80_min: Math.max(5, Math.round((80 - soc) / 100 * cap / 48 * 60)),
+        estimated_time_to_target_min: Math.max(8, Math.round((85 - soc) / 100 * cap / 48 * 60)),
+        hub_id: hubId,
+        gun_id: `gun-${hubId}-5`,
+      };
+
+      // Keep maximum 2 extra spawned sessions
+      if (_extraSpawnedSessions.length >= 2) {
+        _extraSpawnedSessions.shift();
+      }
+      _extraSpawnedSessions.push(newSess);
+    };
+
+    window.addEventListener('hyperflow-scenario', scenarioHandler as EventListener);
+    window.addEventListener('hyperflow-spawn-ev', spawnHandler as EventListener);
+    return () => {
+      window.removeEventListener('hyperflow-scenario', scenarioHandler as EventListener);
+      window.removeEventListener('hyperflow-spawn-ev', spawnHandler as EventListener);
+    };
   }, []);
 
   return { telemetry, events, isConnected };
