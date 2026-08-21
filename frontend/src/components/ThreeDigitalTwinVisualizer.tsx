@@ -265,6 +265,7 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
   const sessionsRef = useRef<EVSession[]>(sessions);
   const hubsRef = useRef<Hub[]>(hubs);
   const containerDimsRef = useRef<{ w: number; h: number }>({ w: 960, h: 520 });
+  const ambientTempRef = useRef<number>(28);
 
   // Refs for mutable Three.js objects
   const sceneInitRef = useRef<boolean>(false);
@@ -424,6 +425,8 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
 
   const handleTempSlider = async (val: number) => {
     setAmbientTempSlider(val);
+    ambientTempRef.current = val;
+    window.dispatchEvent(new CustomEvent('hyperflow-ambient-temp', { detail: { temp_c: val } }));
     await updateAmbientTemp(val);
   };
 
@@ -1243,8 +1246,9 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
       const curTransformer = transformerRef.current;
       const curSessions = sessionsRef.current;
       const dims = containerDimsRef.current;
+      const curTemp = ambientTempRef.current ?? (curTransformer ? curTransformer.ambient_temp_c : 28);
 
-      const dynamicIsHighTemp = curScenario === 'HIGH_TEMP' || (curTransformer ? curTransformer.ambient_temp_c > 35 : false);
+      const dynamicIsHighTemp = curScenario === 'HIGH_TEMP' || curTemp >= 35;
       const dynamicIsGridSurge = curScenario === 'GRID_SURGE';
       const dynamicIsFaulted = curScenario === 'CHARGER_FAILURE';
       const dynamicIsPhantom = curScenario === 'DRIVER_DELAY';
@@ -1254,12 +1258,12 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
       // === Dynamic material updates ===
       if (thermalLightRef.current) {
         thermalLightRef.current.color.setHex(dynamicIsHighTemp ? 0xff8c00 : 0x4fc3f7);
-        thermalLightRef.current.intensity = dynamicIsHighTemp ? 3.5 : 0.6;
+        thermalLightRef.current.intensity = dynamicIsHighTemp ? Math.min(5.0, 1.5 + (curTemp - 30) * 0.15) : 0.6;
       }
       if (transTankMatRef.current) {
         transTankMatRef.current.color.setHex(dynamicIsHighTemp ? 0x8B6914 : 0x3a6b3a);
         transTankMatRef.current.emissive.setHex(dynamicIsHighTemp ? 0xff6600 : 0x000000);
-        transTankMatRef.current.emissiveIntensity = dynamicIsHighTemp ? 0.3 : 0;
+        transTankMatRef.current.emissiveIntensity = dynamicIsHighTemp ? Math.min(0.8, 0.2 + (curTemp - 30) * 0.03) : 0;
       }
       if (transFinMatRef.current) {
         transFinMatRef.current.color.setHex(dynamicIsHighTemp ? 0x9a7a2a : 0x5a8a5a);
@@ -1554,14 +1558,14 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
           </div>
           <div>
             <div className="text-[10px] text-slate-400 uppercase tracking-wider">SAFE HEADROOM</div>
-            <div className={`text-lg font-black mt-0.5 ${isHighTemp ? 'text-amber-400' : 'text-emerald-400'}`}>
-              {transformer ? transformer.safe_headroom_kw.toFixed(1) : '--'} kW
+            <div className={`text-lg font-black mt-0.5 ${ambientTempSlider >= 35 ? 'text-amber-400' : 'text-emerald-400'}`}>
+              {Math.max(0, (200 * (ambientTempSlider <= 30 ? 1.0 : Math.max(0.55, 1.0 - (ambientTempSlider - 30) * 0.022))) - (transformer ? transformer.current_load_kw : 148)).toFixed(1)} kW
             </div>
           </div>
           <div>
             <div className="text-[10px] text-slate-400 uppercase tracking-wider">AMBIENT TEMP</div>
-            <div className={`text-lg font-black mt-0.5 ${isHighTemp ? 'text-amber-400' : 'text-slate-200'}`}>
-              {transformer ? transformer.ambient_temp_c.toFixed(1) : '--'}°C
+            <div className={`text-lg font-black mt-0.5 ${ambientTempSlider >= 35 ? 'text-amber-400' : 'text-slate-200'}`}>
+              {ambientTempSlider}°C
             </div>
           </div>
           <div>
@@ -1637,10 +1641,10 @@ export const ThreeDigitalTwinVisualizer: React.FC<ThreeDigitalTwinVisualizerProp
                   <span className="text-[9px] bg-amber-500/20 px-1 rounded">{transformer ? transformer.capacity_kw : 200} kW</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1 text-[9px] text-slate-300 pt-0.5">
-                  <div>LOAD: <span className="text-cyan-300 font-bold">{transformer ? transformer.current_load_kw.toFixed(0) : '--'}kW</span></div>
-                  <div>HEADROOM: <span className="text-emerald-400 font-bold">{transformer ? transformer.safe_headroom_kw.toFixed(0) : '--'}kW</span></div>
-                  <div>AMBIENT: <span className="text-amber-300 font-bold">{transformer ? transformer.ambient_temp_c.toFixed(0) : '--'}°C</span></div>
-                  <div>THERMAL: <span className="text-white font-bold">{transformer ? transformer.thermal_state_pct.toFixed(0) : '--'}%</span></div>
+                  <div>LOAD: <span className="text-cyan-300 font-bold">{transformer ? transformer.current_load_kw.toFixed(0) : '148'}kW</span></div>
+                  <div>HEADROOM: <span className={`${ambientTempSlider >= 35 ? 'text-amber-400' : 'text-emerald-400'} font-bold`}>{Math.max(0, (200 * (ambientTempSlider <= 30 ? 1.0 : Math.max(0.55, 1.0 - (ambientTempSlider - 30) * 0.022))) - (transformer ? transformer.current_load_kw : 148)).toFixed(0)}kW</span></div>
+                  <div>AMBIENT: <span className="text-amber-300 font-bold">{ambientTempSlider}°C</span></div>
+                  <div>THERMAL: <span className="text-white font-bold">{Math.min(98, Math.round(55 + (ambientTempSlider / 50) * 35))}%</span></div>
                 </div>
               </div>
             </div>

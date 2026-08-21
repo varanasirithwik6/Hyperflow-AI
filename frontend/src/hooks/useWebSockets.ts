@@ -28,6 +28,7 @@ let _soc2 = 45.0;
 let _soc3 = 68.0;
 let _soc4 = 31.0;
 let _scenario = 'NORMAL';
+let _ambientTemp = 28.0;
 let _extraSpawnedSessions: EVSession[] = [];
 
 function buildDemoTelemetry(): TelemetryPayload {
@@ -64,10 +65,12 @@ function buildDemoTelemetry(): TelemetryPayload {
   });
 
   const spawnedPower = _extraSpawnedSessions.reduce((sum, s) => sum + s.allocated_power_kw, 0);
-  const ambientTemp = _scenario === 'HIGH_TEMP' ? 40.0 : 28.0;
-  const thermalState = _scenario === 'HIGH_TEMP' ? 82.0 : 68.0;
+  const ambientTemp = _scenario === 'HIGH_TEMP' ? 40.0 : _ambientTemp;
+  const derateFactor = ambientTemp <= 30 ? 1.0 : Math.max(0.55, 1.0 - (ambientTemp - 30) * 0.022);
+  const effectiveCapacity = 200 * derateFactor;
+  const thermalState = Math.min(98, Math.round(55 + (ambientTemp / 50) * 35));
   const totalLoad = power1 + power2 + power3 + (_scenario === 'CHARGER_FAILURE' ? 0 : power4) + spawnedPower + 20;
-  const safeHeadroom = _scenario === 'HIGH_TEMP' ? 200 * 0.75 - totalLoad : 200 - totalLoad;
+  const safeHeadroom = Math.max(0, parseFloat((effectiveCapacity - totalLoad).toFixed(1)));
 
   const hubs: Hub[] = [
     {
@@ -385,11 +388,20 @@ export const useWebSockets = () => {
       _extraSpawnedSessions.push(newSess);
     };
 
+    const tempHandler = (e: CustomEvent) => {
+      const val = Number(e.detail?.temp_c);
+      if (!isNaN(val)) {
+        _ambientTemp = val;
+      }
+    };
+
     window.addEventListener('hyperflow-scenario', scenarioHandler as EventListener);
     window.addEventListener('hyperflow-spawn-ev', spawnHandler as EventListener);
+    window.addEventListener('hyperflow-ambient-temp', tempHandler as EventListener);
     return () => {
       window.removeEventListener('hyperflow-scenario', scenarioHandler as EventListener);
       window.removeEventListener('hyperflow-spawn-ev', spawnHandler as EventListener);
+      window.removeEventListener('hyperflow-ambient-temp', tempHandler as EventListener);
     };
   }, []);
 
